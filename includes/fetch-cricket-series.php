@@ -1,6 +1,6 @@
 <script type="text/javascript">
     jQuery(document).ready(function($) {
-        var series_selector = $('#cricket_series').select2({
+        $('#cricket_series').select2({
             placeholder: {
                 id: '-1',
                 text: 'Select a series'
