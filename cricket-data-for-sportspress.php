@@ -33,6 +33,64 @@ if (!defined('ABSPATH')) {
     exit; // Exit if accessed directly
 }
 
+add_action('admin_init', 'register_ajax_actions');
+
+function register_ajax_actions()
+{
+    add_action('wp_ajax_cricket_series_list', 'get_cricket_series_list');
+
+    function get_cricket_series_list()
+    {
+        $search = $_POST['q'];
+        $api_key = get_option('cricket_data_for_sportspress_settings')['api_key'];
+        $url = 'https://api.cricapi.com/v1/series?apikey=' . $api_key;
+
+        if ($search) {
+            $url .= '&search=' . $search;
+        }
+
+        $response = wp_remote_get($url);
+        $body = wp_remote_retrieve_body($response);
+
+        if ($body->status == 'success') {
+            $result = json_decode($body);
+            $series_list = array();
+
+            foreach ($result->data as $series) {
+                $series_list[] = array(
+                    'id' => $series->id,
+                    'name' => $series->name,
+                    "startDate" => $series->startDate,
+                    "endDate" => $series->endDate,
+                    "odi" => $series->odi,
+                    "t20" => $series->t20,
+                    "test" => $series->test,
+                    "squads" => $series->squads,
+                    "matches" => $series->matches
+                );
+            }
+
+            wp_send_json($series_list);
+            wp_die();
+        } else {
+            wp_send_json(array('reason' => $body->reason));
+            wp_die();
+        }
+    }
+
+    add_action('wp_ajax_add_cricket_series', 'add_cricket_series');
+
+    function add_cricket_series()
+    {
+        // TODO: Add league to SportsPress
+        // TODO: Add seasons to SportsPress
+        // TODO: Add matches to SportsPress
+        // TODO: Add players to SportsPress
+        // TODO: Add teams to SportsPress
+        // TODO: Add venues to SportsPress
+    }
+}
+
 /**
  * Check if SportsPress is installed and activated
  */
@@ -139,7 +197,7 @@ function register_settings_fields()
         $api_key = $options['api_key'];
     ?>
         <input id="api_key" name="cricket_data_for_sportspress_settings[api_key]" size="40" type="text" value="<?= $api_key ?>" />
-<?php
+        <?php
     }
 }
 
@@ -151,6 +209,7 @@ add_action('admin_menu', 'register_submenu_pages');
 function register_submenu_pages()
 {
     register_settings_submenu_pages();
+    register_managment_submenu_pages();
 }
 
 /**
@@ -169,6 +228,59 @@ function register_settings_submenu_pages()
     function register_cricket_data_settings_submenu_page()
     {
         require_once plugin_dir_path(__FILE__) . 'includes/cricket-data-settings.php';
+    }
+}
+
+/**
+ * Register plugin managment menu page
+ */
+function register_managment_submenu_pages()
+{
+    add_management_page(
+        __('Import Cricket Data', 'cricket-data-for-sportspress'),
+        __('Cricket Data', 'cricket-data-for-sportspress'),
+        'import',
+        'import-cricket-data',
+        'register_import_cricket_data_submenu_page'
+    );
+
+    function register_import_cricket_data_submenu_page()
+    {
+        wp_enqueue_script('select2', 'https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js', array('jquery'), '4.1.0', true);
+        wp_enqueue_style('select2', 'https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css', array(), '4.1.0', 'all');
+
+        require_once plugin_dir_path(__FILE__) . 'includes/import-cricket-data.php';
+    }
+
+    if (!get_option('cricket_data_for_sportspress_settings')['api_key']) {
+        add_action('admin_notices', 'api_key_not_set_notice');
+
+        function api_key_not_set_notice()
+        {
+        ?>
+            <div class="error">
+                <p>
+                    <strong>Cricket Data for SportsPress</strong> requires an API key to be set in order to import data.
+                    <a href="<?= admin_url('options-general.php?page=cricket-data-settings') ?>">Set API key</a>
+                </p>
+            </div>
+<?php
+        }
+    } else {
+        add_action('admin_footer', 'fetch_cricket_series');
+
+        function fetch_cricket_series()
+        {
+            // External JS file
+            // wp_enqueue_script('fetch-cricket-series', plugin_dir_url(__FILE__) . 'js/fetch-cricket-series.js', array('jquery'), '1.0.0', true);
+            // wp_localize_script(
+            //     'fetch-cricket-series',
+            //     'ajax_object',
+            //     array('ajax_url' => admin_url('admin-ajax.php'))
+            // );
+
+            require_once plugin_dir_path(__FILE__) . 'includes/fetch-cricket-series.php';
+        }
     }
 }
 
