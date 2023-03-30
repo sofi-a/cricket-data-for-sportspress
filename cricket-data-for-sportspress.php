@@ -41,9 +41,12 @@ function register_ajax_actions()
 
     function get_cricket_series_list()
     {
+        $page_size = 25;
+        $page = $_POST['page'] ? $_POST['page'] : 1;
+        $offset = ($page - 1) * $page_size;
         $search = $_POST['q'];
         $api_key = get_option('cricket_data_for_sportspress_settings')['api_key'];
-        $url = 'https://api.cricapi.com/v1/series?apikey=' . $api_key;
+        $url = "https://api.cricapi.com/v1/series?apikey=$api_key&offset=$offset";
 
         if ($search) {
             $url .= '&search=' . $search;
@@ -51,9 +54,9 @@ function register_ajax_actions()
 
         $response = wp_remote_get($url);
         $body = wp_remote_retrieve_body($response);
-
-        if ($body->status == 'success') {
             $result = json_decode($body);
+
+        if ($result->status == 'success') {
             $series_list = array();
 
             foreach ($result->data as $series) {
@@ -70,10 +73,10 @@ function register_ajax_actions()
                 );
             }
 
-            wp_send_json($series_list);
+            wp_send_json(array('results' => $series_list, 'more' => $page_size * $page < $result->info->totalRows));
             wp_die();
         } else {
-            wp_send_json(array('reason' => $body->reason));
+            wp_send_json(json_decode($body));
             wp_die();
         }
     }

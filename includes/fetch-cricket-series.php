@@ -13,12 +13,24 @@
                 data: function(params) {
                     return {
                         q: params.term, // search term
-                        action: 'cricket_series_list'
+                        action: 'cricket_series_list',
+                        page: params.page || 1
                     };
                 },
                 processResults: function(data) {
+                    if (data.reason) {
+                        $('#error-notice').html('<div class="notice notice-error"><p>' + data.reason + '</p></div>');
+
+                        return {
+                            results: [],
+                            pagination: {
+                                more: false
+                            }
+                        };
+                    };
+
                     return {
-                        results: $.map(data, function(item) {
+                        results: $.map(data.results, function(item) {
                             return {
                                 text: item.name,
                                 id: item.id,
@@ -27,7 +39,10 @@
                                 endDate: item.endDate,
                                 matches: item.matches
                             }
-                        })
+                        }),
+                        pagination: {
+                            more: data.more
+                        }
                     };
                 },
                 cache: true
