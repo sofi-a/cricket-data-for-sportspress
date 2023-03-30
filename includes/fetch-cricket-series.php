@@ -1,5 +1,4 @@
 <script type="text/javascript">
-    var initial
     jQuery(document).ready(function($) {
         var series_selector = $('#cricket_series').select2({
             placeholder: {
